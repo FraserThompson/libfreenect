@@ -135,7 +135,8 @@ cdef extern from "libfreenect.h":
 
 cdef extern from "libfreenect_sync.h":
     int freenect_sync_get_video(void **video, uint32_t *timestamp, int index, freenect_video_format fmt) nogil
-    int freenect_sync_get_depth(void **depth, uint32_t *timestamp, int index, freenect_depth_format fmt) nogil
+    int freenect_sync_get_video_with_res(void **video, uint32_t *timestamp, int index, freenect_video_format fmt) nogil
+    int freenect_sync_get_depth(void **depth, uint32_t *timestamp, int index, freenect_resolution res, freenect_depth_format fmt) nogil
     void freenect_sync_stop()
 
 
@@ -532,6 +533,43 @@ def sync_get_video(index=0, format=VIDEO_RGB):
     cdef freenect_video_format _format = format
     with nogil:
         out = freenect_sync_get_video(&data, &timestamp, _index, _format)
+    if out:
+        error_open_device()
+        return
+    if format == VIDEO_RGB:
+        dims[0], dims[1], dims[2]  = 480, 640, 3
+        return PyArray_SimpleNewFromData(3, dims, npc.NPY_UINT8, data), timestamp
+    elif format == VIDEO_IR_8BIT:
+        dims[0], dims[1]  = 480, 640
+        return PyArray_SimpleNewFromData(2, dims, npc.NPY_UINT8, data), timestamp
+    elif format == VIDEO_IR_10BIT:
+        dims[0], dims[1]  = 480, 640
+        return PyArray_SimpleNewFromData(2, dims, npc.NPY_UINT16, data), timestamp
+    else:
+        raise TypeError('Conversion not implemented for type [%d]' % (format))
+        
+def sync_get_video_with_res(index=0, res=RESOLUTION_MEDIUM, format=VIDEO_RGB):
+    """Get the next available rgb frame from the kinect, as a numpy array.
+
+    Args:
+        index: Kinect device index (default: 0)
+        res: Resoloution format (default: RESOLUTION_MEDIUM)
+        format: Depth format (default: VIDEO_RGB)
+
+    Returns:
+        (depth, timestamp) or None on error
+        depth: A numpy array, shape:(480, 640, 3) dtype:np.uint8
+        timestamp: int representing the time
+    """
+    cdef void* data
+    cdef uint32_t timestamp
+    cdef npc.npy_intp dims[3]
+    cdef int out
+    cdef int _index = index
+    cdef _res freenect_resolution = res
+    cdef freenect_video_format _format = format
+    with nogil:
+        out = freenect_sync_get_video_with_res(&data, &timestamp, _index, _res, _format)
     if out:
         error_open_device()
         return
