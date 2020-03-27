@@ -135,8 +135,8 @@ cdef extern from "libfreenect.h":
 
 cdef extern from "libfreenect_sync.h":
     int freenect_sync_get_video(void **video, uint32_t *timestamp, int index, freenect_video_format fmt) nogil
-    int freenect_sync_get_video_with_res(void **video, uint32_t *timestamp, int index, freenect_video_format fmt) nogil
-    int freenect_sync_get_depth(void **depth, uint32_t *timestamp, int index, freenect_resolution res, freenect_depth_format fmt) nogil
+    int freenect_sync_get_video_with_res(void **video, uint32_t *timestamp, int index, freenect_resolution res, freenect_video_format fmt) nogil
+    int freenect_sync_get_depth(void **depth, uint32_t *timestamp, int index, freenect_depth_format fmt) nogil
     void freenect_sync_stop()
 
 
@@ -566,7 +566,7 @@ def sync_get_video_with_res(index=0, res=RESOLUTION_MEDIUM, format=VIDEO_RGB):
     cdef npc.npy_intp dims[3]
     cdef int out
     cdef int _index = index
-    cdef _res freenect_resolution = res
+    cdef freenect_resolution _res = res
     cdef freenect_video_format _format = format
     with nogil:
         out = freenect_sync_get_video_with_res(&data, &timestamp, _index, _res, _format)
